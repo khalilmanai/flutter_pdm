@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
 class CreateUserPage extends StatefulWidget {
   final Function onUserCreated;
 
-  CreateUserPage({required this.onUserCreated});
+  const CreateUserPage({super.key, required this.onUserCreated});
 
   @override
   _CreateUserPageState createState() => _CreateUserPageState();
@@ -53,16 +54,16 @@ class _CreateUserPageState extends State<CreateUserPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create User'),
+        title: const Text('Create User'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
               TextFormField(
-                decoration: InputDecoration(labelText: 'Username'),
+                decoration: const InputDecoration(labelText: 'Username'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a username';
@@ -72,7 +73,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
                 onSaved: (value) => username = value,
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(labelText: 'Email'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter an email';
@@ -82,20 +83,21 @@ class _CreateUserPageState extends State<CreateUserPage> {
                 onSaved: (value) => email = value,
               ),
               DropdownButtonFormField(
-                decoration: InputDecoration(labelText: 'Role'),
+                decoration: const InputDecoration(labelText: 'Role'),
                 items: roles
                     .map((role) => DropdownMenuItem(
-                  value: role,
-                  child: Text(role),
-                ))
+                          value: role,
+                          child: Text(role),
+                        ))
                     .toList(),
-                onChanged: (value) => role = value as String?,
-                validator: (value) => value == null ? 'Please select a role' : null,
+                onChanged: (value) => role = value,
+                validator: (value) =>
+                    value == null ? 'Please select a role' : null,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: createUser,
-                child: Text('Create User'),
+                child: const Text('Create User'),
               ),
             ],
           ),

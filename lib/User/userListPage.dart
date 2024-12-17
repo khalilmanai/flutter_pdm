@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:pdm_flutter_app/User/UserDetailsPage.dart';
 import 'package:pdm_flutter_app/User/createUserPage.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-
 
 class UserListPage extends StatefulWidget {
   @override
@@ -12,7 +10,7 @@ class UserListPage extends StatefulWidget {
 }
 
 class _UserListPageState extends State<UserListPage> {
-  final String apiUrl = 'http://10.0.2.2:3000/users';
+  final String apiUrl = 'http://localhost:3000/users';
   List users = [];
   String selectedRole = 'ALL';
 
@@ -48,8 +46,9 @@ class _UserListPageState extends State<UserListPage> {
   }
 
   List getFilteredUsers() {
-    if (selectedRole == 'ALL') return users;
-    return users.where((user) => user['role'] == selectedRole).toList();
+    return selectedRole == 'ALL'
+        ? users
+        : users.where((user) => user['role'] == selectedRole).toList();
   }
 
   void navigateToCreateUser() {
@@ -60,11 +59,10 @@ class _UserListPageState extends State<UserListPage> {
     );
   }
 
-  void navigateToUserDetail(String userId) {
+  void navigateToUserDetail(Map user) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-          builder: (context) => UserDetailPage(userId: userId)),
+      MaterialPageRoute(builder: (context) => UserDetailPage(user: user)),
     );
   }
 
@@ -82,13 +80,12 @@ class _UserListPageState extends State<UserListPage> {
                   selectedRole = value;
                 });
               },
-              itemBuilder: (context) =>
-                  ['ALL', 'PROJECT_MANAGER', 'MEMBER']
-                      .map((role) => PopupMenuItem(
-                    value: role,
-                    child: Text(role),
-                  ))
-                      .toList(),
+              itemBuilder: (context) => ['ALL', 'PROJECT_MANAGER', 'MEMBER']
+                  .map((role) => PopupMenuItem(
+                        value: role,
+                        child: Text(role),
+                      ))
+                  .toList(),
               child: Row(
                 children: [
                   const Icon(Icons.filter_list),
@@ -100,32 +97,71 @@ class _UserListPageState extends State<UserListPage> {
           ),
         ],
       ),
-      body: users.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-        itemCount: getFilteredUsers().length,
-        itemBuilder: (context, index) {
-          final user = getFilteredUsers()[index];
-          final String username =
-              user['username'] ?? 'Unknown'; // Default value for username
-          final String id =
-              user['id']?.toString() ?? ''; // Ensure id is not null
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (users.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          return Card(
-            margin:
-            const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            elevation: 2,
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 8),
-              title: Text(username),
-              subtitle: Text(user['role'] ?? 'No role specified'),
-              leading: CircleAvatar(
-                child: Text(username.substring(0, 1)),
-                backgroundColor: Colors.blueAccent,
-              ),
-              onTap: () => navigateToUserDetail(id), // Navigate to details
+          final isWideScreen = constraints.maxWidth > 600;
+          final filteredUsers = getFilteredUsers();
+
+          return GridView.builder(
+            padding: const EdgeInsets.all(8),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isWideScreen ? 3 : 1,
+              childAspectRatio: isWideScreen ? 3 : 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
             ),
+            itemCount: filteredUsers.length,
+            itemBuilder: (context, index) {
+              final user = filteredUsers[index];
+              final String username = user['username'] ?? 'Unknown';
+
+              return Card(
+                elevation: 4,
+                child: InkWell(
+                  onTap: () => navigateToUserDetail(user), // Pass user object
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: Colors.blueAccent,
+                          child: Text(
+                            username.isNotEmpty
+                                ? username.substring(0, 1).toUpperCase()
+                                : '?',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                username,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                user['role'] ?? 'No role specified',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
