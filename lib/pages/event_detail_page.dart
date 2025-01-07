@@ -1,32 +1,159 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:pdm_flutter_app/services/api_constants.dart';
+import 'dart:convert';
 import '../models/event.dart';
 
-class EventDetailPage extends StatelessWidget {
+class EventDetailPage extends StatefulWidget {
   final Event event;
 
   const EventDetailPage({Key? key, required this.event}) : super(key: key);
 
   @override
+  _EventDetailPageState createState() => _EventDetailPageState();
+}
+
+class _EventDetailPageState extends State<EventDetailPage> {
+  late TextEditingController titleController;
+  late TextEditingController locationController;
+  late TextEditingController dateController;
+  late TextEditingController descriptionController;
+  late TextEditingController imageUrlController;
+
+  @override
+  void initState() {
+    super.initState();
+    titleController = TextEditingController(text: widget.event.title);
+    locationController = TextEditingController(text: widget.event.location);
+    dateController = TextEditingController(
+        text: widget.event.date.toLocal().toString().split(' ')[0]);
+    descriptionController =
+        TextEditingController(text: widget.event.description);
+    imageUrlController = TextEditingController(text: widget.event.imageUrl);
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    locationController.dispose();
+    dateController.dispose();
+    descriptionController.dispose();
+    imageUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> saveChanges() async {
+    final url =
+        Uri.parse('https://${ApiConstants.baseUrl}/events/${widget.event.id}');
+    print(url);
+    final body = {
+      'title': titleController.text,
+      'description': descriptionController.text,
+      'date': dateController.text,
+      'location': locationController.text,
+      'imageUrl': imageUrlController.text,
+    };
+
+    try {
+      final response = await http.patch(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Event updated successfully!')),
+        );
+        Navigator.pop(context);
+      } else {
+        throw Exception('Failed to update event');
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $error')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          event.title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.blueAccent,
+        title: const Text('Edit Event'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: saveChanges,
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(15.0),
-                child: Image.network(
-                  event.imageUrl,
-                  height: 250,
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: locationController,
+                decoration: const InputDecoration(
+                  labelText: 'Location',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: dateController,
+                decoration: const InputDecoration(
+                  labelText: 'Date',
+                  border: OutlineInputBorder(),
+                ),
+                readOnly: true,
+                onTap: () async {
+                  DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: widget.event.date,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2101),
+                  );
+                  if (pickedDate != null) {
+                    setState(() {
+                      dateController.text =
+                          pickedDate.toLocal().toString().split(' ')[0];
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: imageUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Image URL',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (imageUrlController.text.isNotEmpty)
+                Image.network(
+                  imageUrlController.text,
+                  height: 200,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => const Icon(
@@ -35,69 +162,14 @@ class EventDetailPage extends StatelessWidget {
                     color: Colors.grey,
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                event.title,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, color: Colors.blueAccent),
-                  const SizedBox(width: 5),
-                  Text(
-                    event.location,
-                    style: const TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, color: Colors.blueAccent),
-                  const SizedBox(width: 5),
-                  Text(
-                    event.date.toLocal().toString().split(' ')[0], // Show only date
-                    style: const TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Description',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                event.description,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Action for participation or another feature
-                  },
-                  icon: const Icon(Icons.event_available),
-                  label: const Text('Participate'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20.0, vertical: 12.0),
-                    textStyle: const TextStyle(fontSize: 16),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: saveChanges,
+                  child: const Text(
+                    'Save Changes',
+                    style: TextStyle(fontSize: 18),
                   ),
                 ),
               ),

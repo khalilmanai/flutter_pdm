@@ -20,6 +20,7 @@ class EventService {
   Future<Event> fetchEventById(String eventId) async {
     final url = Uri.parse('$baseUrl/events/$eventId');
     final response = await http.get(url);
+
     if (response.statusCode == 200) {
       return Event.fromJson(json.decode(response.body));
     } else {
@@ -27,16 +28,19 @@ class EventService {
     }
   }
 
- Future<void> deleteEvent(String eventId) async {
-  final url = Uri.parse('$baseUrl/events/$eventId');
-  final response = await http.delete(url);
-  if (response.statusCode != 204) {
-    throw Exception('Failed to delete event');
+  Future<String> deleteEvent(String eventId) async {
+    final url = Uri.parse('$baseUrl/events/$eventId');
+    final response = await http.delete(url);
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete event');
+    }
+
+    // Return success message
+    return 'Event deleted successfully';
   }
-}
 
-
-Future<void> createEvent(Event event) async {
+  Future<void> createEvent(Event event) async {
     final url = Uri.parse('$baseUrl/events');
     final response = await http.post(
       url,

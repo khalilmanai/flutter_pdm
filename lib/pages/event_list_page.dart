@@ -53,8 +53,9 @@ class _EventListPageState extends State<EventListPage> {
     if (confirmed != true) return;
 
     try {
-      await ServiceLocator.eventService.deleteEvent(event.id!);
-      _showSnackBar('Event deleted successfully', false);
+      final successMessage =
+          await ServiceLocator.eventService.deleteEvent(event.id!);
+      _showSnackBar(successMessage, false); // Show success message to the user
       _fetchEvents();
     } catch (e) {
       _showSnackBar('Failed to delete event: $e', true);
@@ -86,7 +87,8 @@ class _EventListPageState extends State<EventListPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const CreateEventPage()),
+                MaterialPageRoute(
+                    builder: (context) => const CreateEventPage()),
               ).then((_) => _fetchEvents());
             },
             tooltip: 'Create Event',
@@ -204,7 +206,8 @@ class _EventListPageState extends State<EventListPage> {
                           child: Image.network(
                             event.imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
                               color: theme.colorScheme.primary.withOpacity(0.1),
                               child: Icon(
                                 Icons.broken_image_rounded,
@@ -224,7 +227,8 @@ class _EventListPageState extends State<EventListPage> {
                                   Expanded(
                                     child: Text(
                                       event.title,
-                                      style: theme.textTheme.titleLarge?.copyWith(
+                                      style:
+                                          theme.textTheme.titleLarge?.copyWith(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -243,7 +247,8 @@ class _EventListPageState extends State<EventListPage> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.6),
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -268,7 +273,10 @@ class _EventListPageState extends State<EventListPage> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    event.date.toLocal().toString().split(' ')[0],
+                                    event.date
+                                        .toLocal()
+                                        .toString()
+                                        .split(' ')[0],
                                     style: theme.textTheme.bodyMedium,
                                   ),
                                 ],
