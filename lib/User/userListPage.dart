@@ -1,3 +1,4 @@
+import 'dart:convert'; // Import this for base64 decoding
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
@@ -103,7 +104,7 @@ class _UserListPageState extends State<UserListPage> {
                 final user = _filteredUsers[index];
                 return Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                   child: Card(
                     elevation: 5,
                     shape: RoundedRectangleBorder(
@@ -111,7 +112,14 @@ class _UserListPageState extends State<UserListPage> {
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16.0),
-                      leading: CircleAvatar(
+                      leading: user.image != null && user.image!.isNotEmpty
+                          ? CircleAvatar(
+                        radius: 24,
+                        backgroundImage: MemoryImage(
+                          base64Decode(user.image!),
+                        ),
+                      )
+                          : CircleAvatar(
                         radius: 24,
                         child: Text(
                           user.username[0].toUpperCase(),

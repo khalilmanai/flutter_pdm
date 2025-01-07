@@ -7,6 +7,7 @@ class User {
   final String email;
   final UserRole role; // Change to enum type
   final String? status;
+  final String? image;
 
   User({
     required this.id,
@@ -14,6 +15,7 @@ class User {
     required this.email,
     required this.role,
     this.status,
+    this.image
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class User {
         orElse: () => UserRole.MEMBER,
       ),
       status: json['status'],
+      image:json["image"]
     );
   }
 
@@ -36,6 +39,7 @@ class User {
       'email': email,
       'role': role.toString().split('.').last,
       'status': status,
+      'image':image
     };
   }
 }

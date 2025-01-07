@@ -11,14 +11,13 @@ class CreateEventPage extends StatefulWidget {
 
 class _CreateEventPageState extends State<CreateEventPage> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _capacityController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
-
   DateTime? _selectedDate;
+  bool _isLoading = false;
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -26,158 +25,260 @@ class _CreateEventPageState extends State<CreateEventPage> {
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).primaryColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (pickedDate != null && pickedDate != _selectedDate) {
-      setState(() {
-        _selectedDate = pickedDate;
-      });
+      setState(() => _selectedDate = pickedDate);
     }
   }
 
-  void _submitForm() async {
-    if (_formKey.currentState?.validate() ?? false) {
+  Future<void> _submitForm() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _isLoading = true);
+    try {
       final newEvent = Event(
-  title: _titleController.text,
-  description: _descriptionController.text,
-  location: _locationController.text,
-  capacity: int.parse(_capacityController.text),
-  imageUrl: _imageUrlController.text,
-  date: _selectedDate ?? DateTime.now(),
-  participants: [], // Default empty list
-);
+        title: _titleController.text,
+        description: _descriptionController.text,
+        location: _locationController.text,
+        capacity: int.parse(_capacityController.text),
+        imageUrl: _imageUrlController.text,
+        date: _selectedDate ?? DateTime.now(),
+        participants: [],
+      );
 
-
-
-      try {
-        await ServiceLocator.eventService.createEvent(newEvent);
+      await ServiceLocator.eventService.createEvent(newEvent);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event created successfully.')),
+          SnackBar(
+            content: const Text('Event created successfully'),
+            backgroundColor: Colors.green.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
-        Navigator.pop(context); // Return to the previous screen
-      } catch (e) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create event: $e')),
+          SnackBar(
+            content: Text('Failed to create event: $e'),
+            backgroundColor: Colors.red.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Event'),
-        backgroundColor: Colors.blueAccent,
+        actions: [
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: SizedBox.square(
+                  dimension: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.check_rounded),
+              onPressed: _submitForm,
+              tooltip: 'Create Event',
+            ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: SafeArea(
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a location';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _capacityController,
-                decoration: const InputDecoration(
-                  labelText: 'Capacity',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a capacity';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _selectedDate == null
-                          ? 'No date selected'
-                          : 'Date: ${_selectedDate!.toLocal().toString().split(' ')[0]}',
-                    ),
+              Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Event Details',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Title',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.title_rounded),
+                        ),
+                        enabled: !_isLoading,
+                        validator: (value) {
+                          if (value?.trim().isEmpty ?? true) {
+                            return 'Title is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.description_rounded),
+                          alignLabelWithHint: true,
+                        ),
+                        maxLines: 3,
+                        enabled: !_isLoading,
+                        validator: (value) {
+                          if (value?.trim().isEmpty ?? true) {
+                            return 'Description is required';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () => _selectDate(context),
-                    child: const Text('Select Date'),
-                  ),
-                ],
+                ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _imageUrlController,
-                decoration: const InputDecoration(
-                  labelText: 'Image URL',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter an image URL';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 32),
-              Center(
-                child: ElevatedButton(
-                  onPressed: _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40.0,
-                      vertical: 15.0,
-                    ),
-                    backgroundColor: Colors.blueAccent,
+              Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Location & Capacity',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _locationController,
+                        decoration: const InputDecoration(
+                          labelText: 'Location',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on_rounded),
+                        ),
+                        enabled: !_isLoading,
+                        validator: (value) {
+                          if (value?.trim().isEmpty ?? true) {
+                            return 'Location is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _capacityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Capacity',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.people_rounded),
+                        ),
+                        keyboardType: TextInputType.number,
+                        enabled: !_isLoading,
+                        validator: (value) {
+                          if (value?.trim().isEmpty ?? true) {
+                            return 'Capacity is required';
+                          }
+                          final capacity = int.tryParse(value!);
+                          if (capacity == null || capacity <= 0) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                   ),
-                  child: const Text('Create Event'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Date & Image',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      InkWell(
+                        onTap: _isLoading ? null : () => _selectDate(context),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.calendar_today_rounded),
+                          ),
+                          child: Text(
+                            _selectedDate == null
+                                ? 'Select Date'
+                                : _selectedDate!.toLocal().toString().split(' ')[0],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _imageUrlController,
+                        decoration: const InputDecoration(
+                          labelText: 'Image URL',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.image_rounded),
+                        ),
+                        enabled: !_isLoading,
+                        validator: (value) {
+                          if (value?.trim().isEmpty ?? true) {
+                            return 'Image URL is required';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: _isLoading ? null : _submitForm,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('CREATE EVENT'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
                 ),
               ),
             ],
